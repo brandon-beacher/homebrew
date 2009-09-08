@@ -56,6 +56,7 @@ class Formula
     @homepage=self.class.homepage unless @homepage
     @md5=self.class.md5 unless @md5
     @sha1=self.class.sha1 unless @sha1
+    @workdir=self.class.workdir unless @workdir
   end
 
   # if the dir is there, but it's empty we consider it not installed
@@ -75,7 +76,7 @@ class Formula
     self.class.path name
   end
 
-  attr_reader :url, :version, :homepage, :name
+  attr_reader :url, :version, :homepage, :name, :workdir
 
   def bin; prefix+'bin' end
   def sbin; prefix+'sbin' end
@@ -113,6 +114,8 @@ class Formula
   def deps; end
   # sometimes the clean process breaks things, return true to skip anything
   def skip_clean? path; false end
+  # For projects that insist on having builds in a subdirectory
+  def workdir; nil end
 
   # yields self with current working directory set to the uncompressed tarball
   def brew
@@ -222,6 +225,16 @@ private
     end
   end
 
+  def subdirbuild
+    if @workdir
+      subdir = Pathname.new @workdir
+    else
+      subdir = Pathname.new "."
+    end
+    Dir.chdir subdir.realpath
+    yield
+  end
+
   def stage
     ds=download_strategy.new url, name, version
     HOMEBREW_CACHE.mkpath
@@ -229,7 +242,9 @@ private
     verify_download_integrity dl if dl.kind_of? Pathname
     mktemp do
       ds.stage
-      yield
+      subdirbuild do
+        yield
+      end
     end
   end
 
@@ -271,7 +286,7 @@ private
   end
 
   class <<self
-    attr_reader :url, :version, :homepage, :md5, :sha1, :head
+    attr_reader :url, :version, :homepage, :workdir, :md5, :sha1, :head
   end
 end
 

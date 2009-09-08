@@ -13,6 +13,10 @@ class Erlang <Formula
   @url='http://erlang.org/download/otp_src_R13B01.tar.gz'
   @md5='b3db581de6c13e1ec93d74e54a7b4231'
 
+  def skip_clean? path
+    path.fnmatch "*/beam" or path.fnmatch "*/beam.smp"
+  end
+
   def install
     ENV.deparallelize
     system "./configure", "--disable-debug",
@@ -20,6 +24,7 @@ class Erlang <Formula
                           "--enable-kernel-poll",
                           "--enable-threads",
                           "--enable-dynamic-ssl-lib",
+                          "--with-ssl=/usr",
                           "--enable-smp-support",
                           "--enable-hipe"
     system "make"
