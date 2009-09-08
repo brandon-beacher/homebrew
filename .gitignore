@@ -1,6 +1,7 @@
 .DS_Store
 /bin
 /Cellar
+/hermes
 /lib
 /include
 /sbin
