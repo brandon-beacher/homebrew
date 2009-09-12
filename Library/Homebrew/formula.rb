@@ -54,9 +54,18 @@ class Formula
     @version=Pathname.new(@url).version unless @version
     validate_variable :version if @version
     @homepage=self.class.homepage unless @homepage
+<<<<<<< HEAD
     @md5=self.class.md5 unless @md5
     @sha1=self.class.sha1 unless @sha1
     @workdir=self.class.workdir unless @workdir
+=======
+    CHECKSUM_TYPES.each do |type|
+      if !instance_variable_defined?("@#{type}")
+        class_value = self.class.send(type)
+        instance_variable_set("@#{type}", class_value) if class_value
+      end
+    end
+>>>>>>> 5648ddbf3f9990804fca8b957f5d14e7815963ff
   end
 
   # if the dir is there, but it's empty we consider it not installed
@@ -88,6 +97,7 @@ class Formula
   def man1; man+'man1' end
   def info; prefix+'share'+'info' end
   def include; prefix+'include' end
+  def share; prefix+'share' end
 
   # reimplement if we don't autodetect the download strategy you require
   def download_strategy
@@ -149,14 +159,14 @@ class Formula
     "-DCMAKE_INSTALL_PREFIX='#{prefix}' -DCMAKE_BUILD_TYPE=None"
   end
 
-  def self.class name
+  def self.class_s name
     #remove invalid characters and camelcase
     name.capitalize.gsub(/[-_\s]([a-zA-Z0-9])/) { $1.upcase }
   end
 
   def self.factory name
     require self.path(name)
-    return eval(self.class(name)).new(name)
+    return eval(self.class_s(name)).new(name)
   rescue LoadError
     raise FormulaUnavailableError.new(name)
   end
@@ -182,6 +192,7 @@ protected
         end
       end
       unless $? == 0
+        puts "Exit code: #{$?}"
         puts out
         raise
       end
@@ -209,12 +220,15 @@ private
     end
   end
 
+  CHECKSUM_TYPES=[:md5, :sha1, :sha256].freeze
+
   def verify_download_integrity fn
     require 'digest'
-    type='MD5'
-    type='SHA1' if @sha1
-    supplied=eval "@#{type.downcase}"
-    hash=eval("Digest::#{type}").hexdigest(fn.read)
+    type=CHECKSUM_TYPES.detect { |type| instance_variable_defined?("@#{type}") }
+    type ||= :md5
+    supplied=instance_variable_get("@#{type}")
+    type=type.to_s.upcase
+    hash=Digest.const_get(type).hexdigest(fn.read)
 
     if supplied and not supplied.empty?
       raise "#{type} mismatch: #{hash}" unless supplied.upcase == hash.upcase
@@ -286,7 +300,12 @@ private
   end
 
   class <<self
+<<<<<<< HEAD
     attr_reader :url, :version, :homepage, :workdir, :md5, :sha1, :head
+=======
+    attr_reader :url, :version, :homepage, :head
+    attr_reader *CHECKSUM_TYPES
+>>>>>>> 5648ddbf3f9990804fca8b957f5d14e7815963ff
   end
 end
 
